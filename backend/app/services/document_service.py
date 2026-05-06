@@ -1,6 +1,11 @@
+
+# ================= IMPORTS ================= #
+
 import json
 import logging
 import traceback
+import subprocess
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -19,9 +24,9 @@ logger = logging.getLogger(__name__)
 _faiss_index: Optional[faiss.Index] = None
 _faiss_metadata: dict = {}
 
-# ---------------- FAISS ---------------- #
+# ================= FAISS ================= #
 
-def get_faiss_index() -> faiss.Index:
+def get_faiss_index():
     global _faiss_index
     if _faiss_index is None:
         index_path = Path(settings.FAISS_INDEX_PATH) / "index.faiss"
@@ -35,7 +40,6 @@ def get_faiss_index() -> faiss.Index:
 def save_faiss_index():
     index_path = Path(settings.FAISS_INDEX_PATH)
     index_path.mkdir(parents=True, exist_ok=True)
-
     faiss.write_index(get_faiss_index(), str(index_path / "index.faiss"))
 
     with open(index_path / "metadata.json", "w") as f:
@@ -50,22 +54,20 @@ def load_faiss_metadata():
             _faiss_metadata = json.load(f)
 
 
-# ---------------- TEXT ---------------- #
+# ================= TEXT ================= #
 
-def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50):
+def chunk_text(text: str, chunk_size=300, overlap=50):
     words = text.split()
     chunks = []
     i = 0
 
     while i < len(words):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
+        chunks.append(" ".join(words[i:i+chunk_size]))
         i += chunk_size - overlap
 
     return chunks
 
 
-# 🔥 Lightweight dummy embedding (NO heavy deps)
 async def get_embedding(text: str):
     return [0.0] * 384
 
@@ -78,8 +80,7 @@ async def index_document(doc_id: str, text: str):
     vectors = []
 
     for i, chunk in enumerate(chunks):
-        emb = await get_embedding(chunk)
-        vec = np.array(emb, dtype=np.float32)
+        vec = np.array(await get_embedding(chunk), dtype=np.float32)
         faiss.normalize_L2(vec.reshape(1, -1))
         vectors.append(vec)
 
@@ -95,17 +96,16 @@ async def index_document(doc_id: str, text: str):
     save_faiss_index()
 
 
-# ---------------- SEARCH ---------------- #
+# ================= SEARCH ================= #
 
-async def semantic_search(query: str, doc_id: Optional[str] = None, top_k: int = 5):
+async def semantic_search(query: str, doc_id=None, top_k=5):
     load_faiss_metadata()
     index = get_faiss_index()
 
     if index.ntotal == 0:
         return []
 
-    query_vec = await get_embedding(query)
-    q = np.array(query_vec, dtype=np.float32).reshape(1, -1)
+    q = np.array(await get_embedding(query), dtype=np.float32).reshape(1, -1)
     faiss.normalize_L2(q)
 
     scores, ids = index.search(q, min(top_k, index.ntotal))
@@ -130,148 +130,114 @@ async def semantic_search(query: str, doc_id: Optional[str] = None, top_k: int =
     return results
 
 
-# ---------------- PDF ---------------- #
+# ================= PDF ================= #
 
 def extract_pdf_text(file_path: str):
     text_parts = []
 
     with pdfplumber.open(file_path) as pdf:
         for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text_parts.append(page_text)
+            t = page.extract_text()
+            if t:
+                text_parts.append(t)
 
     return "\n\n".join(text_parts)
 
 
-# ---------------- AUDIO / VIDEO ---------------- #
+# ================= AUDIO / VIDEO ================= #
 
-import subprocess
-import os
-from groq import Groq
-from app.core.config import settings
+def _make_segments(text: str):
+    words = text.split()
+    segments = []
+    chunk = 20
+
+    for i in range(0, len(words), chunk):
+        segments.append({
+            "start": i,
+            "end": i + chunk,
+            "text": " ".join(words[i:i+chunk])
+        })
+
+    return segments
 
 
 async def transcribe_audio_video(file_path: str):
     client = Groq(api_key=settings.GROQ_API_KEY)
 
-    # If already audio → use directly
-    if file_path.lower().endswith((".mp3", ".wav")):
-        audio_path = file_path
-    else:
-        # Convert video → audio
+    if not file_path.lower().endswith((".mp3", ".wav")):
         audio_path = file_path + ".mp3"
 
-        try:
-            subprocess.run([
-                "ffmpeg",
-                "-i", file_path,
-                "-vn",              # remove video
-                "-acodec", "mp3",
-                "-y",
-                audio_path
-            ], check=True)
-        except Exception as e:
-            print("❌ ffmpeg conversion failed:", e)
-            raise
+        subprocess.run(
+            ["ffmpeg", "-i", file_path, "-vn", "-acodec", "mp3", "-y", audio_path],
+            check=True
+        )
+    else:
+        audio_path = file_path
 
-    # Send to Groq
     with open(audio_path, "rb") as f:
         transcription = client.audio.transcriptions.create(
             file=f,
             model=settings.GROQ_WHISPER_MODEL
         )
 
-    # Cleanup temp file
     if audio_path != file_path:
         try:
             os.remove(audio_path)
         except:
             pass
 
-    def _make_segments(text: str):
-    words = text.split()
-    segments = []
-    chunk_size = 20
-
-    for i in range(0, len(words), chunk_size):
-        segments.append({
-            "start": i,
-            "end": i + chunk_size,
-            "text": " ".join(words[i:i+chunk_size])
-        })
-
-    return segments
+    return {
+        "full_text": transcription.text,
+        "segments": _make_segments(transcription.text)
+    }
 
 
-text = transcription.text
-
-return {
-    "full_text": text,
-    "segments": _make_segments(text)
-}
-
-# ---------------- SUMMARY ---------------- #
+# ================= SUMMARY ================= #
 
 async def generate_summary(text: str, file_type: str):
     client = Groq(api_key=settings.GROQ_API_KEY)
 
-    prompt = f"""
-Summarize this {file_type} content clearly.
-
-Include:
-- key points
-- important insights
-
-Content:
-{text[:4000]}
-"""
-
     response = client.chat.completions.create(
         model=settings.GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{
+            "role": "user",
+            "content": f"Summarize this {file_type} content:\n\n{text[:4000]}"
+        }]
     )
 
     return response.choices[0].message.content
 
 
-# ---------------- MAIN PROCESS ---------------- #
+# ================= MAIN ================= #
 
 async def process_document(doc_id: str, db: AsyncSession):
     result = await db.execute(select(Document).where(Document.id == doc_id))
     doc = result.scalar_one_or_none()
 
     if not doc:
-        print("❌ Document not found")
         return
 
     try:
         doc.status = ProcessingStatus.PROCESSING
         await db.commit()
 
-        # -------- extract ----------
         if doc.file_type == FileType.PDF:
-            print("📄 Extracting PDF")
             text = extract_pdf_text(doc.file_path)
 
         elif doc.file_type in (FileType.AUDIO, FileType.VIDEO):
-            print("🎧 Transcribing audio/video")
-            text = await transcribe_audio_video(doc.file_path)
+            transcription = await transcribe_audio_video(doc.file_path)
 
-         text = transcription["full_text"]
-         segments = transcription["segments"]
-        doc.transcription_segments = segments
+            text = transcription["full_text"]
+            doc.transcription_segments = transcription["segments"]
+
+        else:
+            text = ""
 
         if not text.strip():
             raise ValueError("No text extracted")
 
-        print("✅ Text extracted")
-
-        # -------- summary ----------
         summary = await generate_summary(text, doc.file_type.value)
-        print("✅ Summary generated")
 
-        # -------- indexing ----------
         await index_document(str(doc.id), text)
 
         doc.extracted_text = text
@@ -280,13 +246,12 @@ async def process_document(doc_id: str, db: AsyncSession):
 
         await db.commit()
 
-        print("🎉 DONE")
-
     except Exception as e:
-        print("\n🔥 ERROR OCCURRED")
-        print(e)
+        print("ERROR:", e)
         traceback.print_exc()
 
         doc.status = ProcessingStatus.FAILED
         doc.error_message = str(e)
+
         await db.commit()
+
