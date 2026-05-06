@@ -1,4 +1,4 @@
-const API = import.meta.env.VITE_API_URL;
+const API = "https://docqa-ai-production.up.railway.app";
 
 if (!API) {
   throw new Error("VITE_API_URL is NOT set in environment variables");
