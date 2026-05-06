@@ -25,20 +25,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ✅ FIXED CORS (IMPORTANT)
+# ✅ FINAL FIX (THIS IS THE KEY)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://docqa-ai.vercel.app",   # 👈 your Vercel domain
-        "https://*.vercel.app",          # 👈 allow all Vercel previews
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # 🔥 allow all (fixes your issue)
+    allow_credentials=False,  # ⚠️ must be False when using "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ✅ Routes
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(media.router, prefix="/api/media", tags=["Media"])
