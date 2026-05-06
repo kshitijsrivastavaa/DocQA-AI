@@ -1,9 +1,53 @@
 # 🧠 DocQA — AI-Powered Document & Multimedia Q&A
 
-[![CI/CD](https://github.com/yourusername/docqa/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/docqa/actions)
-[![Coverage](https://codecov.io/gh/yourusername/docqa/badge.svg)](https://codecov.io/gh/yourusername/docqa)
+<p align="center">
+  <a href="https://docqa-ai.vercel.app">
+    <img src="https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge&logo=vercel" />
+  </a>
+  <a href="https://docqa-ai-production.up.railway.app/health">
+    <img src="https://img.shields.io/badge/Backend-API-green?style=for-the-badge&logo=fastapi" />
+  </a>
+  <a href="https://github.com/kshitijsrivastavaa/DocQA-AI">
+    <img src="https://img.shields.io/github/stars/kshitijsrivastavaa/DocQA-AI?style=for-the-badge" />
+  </a>
+  <a href="https://github.com/kshitijsrivastavaa/DocQA-AI">
+    <img src="https://img.shields.io/github/forks/kshitijsrivastavaa/DocQA-AI?style=for-the-badge" />
+  </a>
+</p>
 
-A full-stack web application that lets you upload PDFs, audio, and video files — then chat with an AI that understands every word, extracts timestamps, and lets you jump to relevant moments.
+---
+
+🚀 **DocQA** is a full-stack AI-powered application that allows users to upload **PDFs, audio, and video files** and interact with them using natural language queries.
+
+💡 Instead of manually reading or watching content, users can simply **ask questions and get instant AI-generated answers.**
+
+---
+
+## 🔥 Live Links
+
+- 🌐 **Frontend:** https://docqa-ai.vercel.app  
+- ⚙️ **Backend API:** https://docqa-ai-production.up.railway.app  
+- 📚 **API Docs:** https://docqa-ai-production.up.railway.app/docs  
+
+---
+
+## ✨ Key Highlights
+
+- 📄 **PDF Understanding** — Extract and query document content  
+- 🎧 **Audio/Video Transcription** — Powered by Groq Whisper  
+- 💬 **AI Chat Interface** — Ask anything about your content  
+- 🔍 **Semantic Search (FAISS)** — Smart retrieval of relevant chunks  
+- ⚡ **Real-time Streaming Responses**  
+- 🧠 **Automatic Summarization**
+
+---
+
+## 🏗️ Tech Stack
+
+**Frontend:** React (Vite), React Query, React Router  
+**Backend:** FastAPI, SQLAlchemy, FAISS  
+**AI:** Groq (LLM + Whisper)  
+**Deployment:** Vercel (Frontend), Railway (Backend)
 
 ---
 
