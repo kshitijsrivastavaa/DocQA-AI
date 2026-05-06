@@ -25,9 +25,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ✅ FIXED CORS (IMPORTANT)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://docqa-ai.vercel.app",   # 👈 your Vercel domain
+        "https://*.vercel.app",          # 👈 allow all Vercel previews
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
