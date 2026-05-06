@@ -1,4 +1,8 @@
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL;
+
+if (!API) {
+  throw new Error("VITE_API_URL is NOT set in environment variables");
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${API}${path}`, {
