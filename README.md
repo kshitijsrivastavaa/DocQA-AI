@@ -282,6 +282,18 @@ docqa/
 ```
 
 ---
+## 👨‍💻 Author
+
+<div align="center">
+
+### Kshitij Srivastava
+
+📧 Email: <a href="mailto:kshitij.srivastava16@gmail.com">kshitij.srivastava16@gmail.com</a>
+
+💻 GitHub: <a href="https://github.com/kshitijsrivastavaa">kshitijsrivastavaa</a>
+
+</div>
+---
 
 ## 📝 License
 
