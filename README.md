@@ -293,7 +293,6 @@ docqa/
 💻 GitHub: <a href="https://github.com/kshitijsrivastavaa">kshitijsrivastavaa</a>
 
 </div>
----
 
 ## 📝 License
 
